@@ -1,0 +1,38 @@
+# Build artifacts
+target/
+
+# Runtime data
+data/
+*.db
+*.db-shm
+*.db-wal
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation
+README.md
+*.md
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose.yml
+docker-compose.yaml
+
+# Other
+.env
+.env.local
+

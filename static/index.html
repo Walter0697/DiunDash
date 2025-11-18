@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DiunDash - Container Image Dashboard</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #242424;
+            margin: 0;
+            padding: 4px;
+        }
+        
+        .images-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 6px;
+            width: 100%;
+            grid-auto-flow: row;
+        }
+        
+        .image-card {
+            background: #3a3a3a;
+            border-radius: 6px;
+            padding: 8px;
+            border: 1px solid #4a4a4a;
+            transition: all 0.3s ease;
+            position: relative;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-width: 0;
+            width: 100%;
+        }
+        
+        .image-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.5);
+            border-color: #667eea;
+        }
+        
+        .image-card.old-week {
+            border-color: #ffd700;
+            background: #4a4a2d;
+        }
+        
+        .image-card.old-month {
+            border-color: #ff6b6b;
+            background: #4a2d2d;
+        }
+        
+        .image-name-short {
+            font-weight: 600;
+            font-size: 1em;
+            color: #e0e0e0;
+            margin: 4px 0;
+            word-break: break-all;
+            line-height: 1.2;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        
+        .card-icon {
+            font-size: 2.5em;
+            text-align: center;
+            margin: 8px 0;
+            opacity: 0.8;
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .image-name-full {
+            font-size: 0.7em;
+            color: #a0a0a0;
+            text-align: center;
+            margin: 4px 0 2px 0;
+            word-break: break-all;
+            line-height: 1.2;
+            flex-shrink: 0;
+        }
+        
+        .image-date {
+            font-size: 0.7em;
+            color: #a0a0a0;
+            text-align: center;
+            margin: 0 0 4px 0;
+            flex-shrink: 0;
+        }
+        
+        
+        .hover-details {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #2d2d2d;
+            border-radius: 6px;
+            padding: 6px;
+            margin-top: 4px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+            z-index: 10;
+            border: 1px solid #4a4a4a;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .image-card:hover .hover-details {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 2px 0;
+            border-bottom: 1px solid #404040;
+        }
+        
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+        
+        .detail-label {
+            font-weight: 600;
+            color: #a0a0a0;
+            font-size: 0.8em;
+        }
+        
+        .detail-value {
+            color: #e0e0e0;
+            font-size: 0.8em;
+            text-align: right;
+            word-break: break-all;
+            max-width: 60%;
+        }
+        
+        .detail-value a {
+            color: #8ba4ff;
+            text-decoration: none;
+        }
+        
+        .detail-value a:hover {
+            text-decoration: underline;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 10px;
+            color: #a0a0a0;
+            font-size: 0.85em;
+        }
+        
+        .error {
+            background: #5a2d2d;
+            color: #ff6b6b;
+            padding: 6px;
+            border-radius: 6px;
+            margin-top: 6px;
+            font-size: 0.85em;
+        }
+        
+        .delete-btn {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: #5a2d2d;
+            color: #ff6b6b;
+            border: 1px solid #ff6b6b;
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 0.7em;
+            cursor: pointer;
+            z-index: 100;
+            transition: all 0.2s ease;
+            pointer-events: auto;
+        }
+        
+        .delete-btn:hover {
+            background: #ff6b6b;
+            color: #1a1a1a;
+        }
+        
+        .admin-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 1.2em;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            transition: all 0.3s ease;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+        }
+        
+        .admin-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.6);
+        }
+        
+        .admin-btn:active {
+            transform: translateY(0);
+        }
+        
+        .login-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+        
+        .login-form {
+            background: #2d2d2d;
+            padding: 30px;
+            border-radius: 12px;
+            border: 1px solid #4a4a4a;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            min-width: 300px;
+        }
+        
+        .login-form h2 {
+            color: #e0e0e0;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .login-input {
+            width: 100%;
+            padding: 10px;
+            background: #3a3a3a;
+            border: 1px solid #4a4a4a;
+            border-radius: 6px;
+            color: #e0e0e0;
+            font-size: 0.9em;
+            margin-bottom: 15px;
+            box-sizing: border-box;
+        }
+        
+        .login-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .login-btn {
+            width: 100%;
+            padding: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .login-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .login-error {
+            color: #ff6b6b;
+            font-size: 0.85em;
+            margin-top: 10px;
+            text-align: center;
+        }
+        
+        .confirm-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10001;
+        }
+        
+        .confirm-dialog {
+            background: #2d2d2d;
+            padding: 30px;
+            border-radius: 12px;
+            border: 1px solid #4a4a4a;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            min-width: 350px;
+            max-width: 500px;
+        }
+        
+        .confirm-dialog h3 {
+            color: #e0e0e0;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+        
+        .confirm-dialog p {
+            color: #a0a0a0;
+            margin-bottom: 20px;
+            word-break: break-all;
+        }
+        
+        .confirm-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        
+        .confirm-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .confirm-btn-cancel {
+            background: #3a3a3a;
+            color: #e0e0e0;
+            border: 1px solid #4a4a4a;
+        }
+        
+        .confirm-btn-cancel:hover {
+            background: #4a4a4a;
+        }
+        
+        .confirm-btn-delete {
+            background: #5a2d2d;
+            color: #ff6b6b;
+            border: 1px solid #ff6b6b;
+        }
+        
+        .confirm-btn-delete:hover {
+            background: #ff6b6b;
+            color: #1a1a1a;
+        }
+    </style>
+</head>
+<body>
+    <div id="login-overlay" class="login-overlay" style="display: none;">
+        <div class="login-form">
+            <h2>Admin Login</h2>
+            <input type="password" id="api-key-input" class="login-input" placeholder="Enter API Key" />
+            <button class="login-btn" onclick="handleLogin()">Login</button>
+            <div id="login-error" class="login-error"></div>
+        </div>
+    </div>
+    
+    <div id="confirm-overlay" class="confirm-overlay" onclick="if(event.target === this) cancelDelete()">
+        <div class="confirm-dialog" onclick="event.stopPropagation()">
+            <h3>Confirm Deletion</h3>
+            <p id="confirm-message">Are you sure you want to delete this image?</p>
+            <div class="confirm-buttons">
+                <button class="confirm-btn confirm-btn-cancel" onclick="cancelDelete()">Cancel</button>
+                <button class="confirm-btn confirm-btn-delete" onclick="confirmDelete()">Delete</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="images-container" class="loading">
+        Loading images...
+    </div>
+    
+    <a href="/admin" class="admin-btn" title="Admin Panel" target="_blank" rel="noopener noreferrer">⚙️</a>
+
+    <script>
+        async function loadImages() {
+            const container = document.getElementById('images-container');
+            
+            container.innerHTML = '<div class="loading">Loading images...</div>';
+            
+            try {
+                const response = await fetch('/api/images');
+                const data = await response.json();
+                
+                if (data.status === 'success' && data.images) {
+                    if (data.images.length === 0) {
+                        container.innerHTML = '<div class="loading">No images found in database</div>';
+                        return;
+                    }
+                    
+                    const grid = document.createElement('div');
+                    grid.className = 'images-grid';
+                    
+                    data.images.forEach(image => {
+                        const card = createImageCard(image);
+                        grid.appendChild(card);
+                    });
+                    
+                    container.innerHTML = '';
+                    container.appendChild(grid);
+                } else {
+                    container.innerHTML = `<div class="error">Error: ${data.message || 'Failed to load images'}</div>`;
+                }
+            } catch (error) {
+                container.innerHTML = `<div class="error">Error loading images: ${error.message}</div>`;
+            }
+        }
+        
+        function isAdminPage() {
+            return window.location.pathname === '/admin';
+        }
+        
+        function getApiKey() {
+            return localStorage.getItem('diundash_api_key');
+        }
+        
+        function setApiKey(key) {
+            localStorage.setItem('diundash_api_key', key);
+        }
+        
+        function clearApiKey() {
+            localStorage.removeItem('diundash_api_key');
+        }
+        
+        let pendingDeleteImage = null;
+        
+        function showConfirmDialog(imageName) {
+            pendingDeleteImage = imageName;
+            const overlay = document.getElementById('confirm-overlay');
+            const message = document.getElementById('confirm-message');
+            if (overlay && message) {
+                message.textContent = `Are you sure you want to delete ${imageName}?`;
+                overlay.style.display = 'flex';
+            }
+        }
+        
+        function hideConfirmDialog() {
+            const overlay = document.getElementById('confirm-overlay');
+            if (overlay) {
+                overlay.style.display = 'none';
+            }
+            pendingDeleteImage = null;
+        }
+        
+        function cancelDelete() {
+            hideConfirmDialog();
+        }
+        
+        async function confirmDelete() {
+            if (!pendingDeleteImage) {
+                hideConfirmDialog();
+                return;
+            }
+            
+            const imageName = pendingDeleteImage;
+            hideConfirmDialog();
+            await performDelete(imageName);
+        }
+        
+        function showLogin() {
+            const overlay = document.getElementById('login-overlay');
+            if (overlay) {
+                overlay.style.display = 'flex';
+                document.getElementById('api-key-input').focus();
+            }
+        }
+        
+        function hideLogin() {
+            const overlay = document.getElementById('login-overlay');
+            if (overlay) {
+                overlay.style.display = 'none';
+            }
+        }
+        
+        async function handleLogin() {
+            const apiKey = document.getElementById('api-key-input').value;
+            const errorDiv = document.getElementById('login-error');
+            
+            if (!apiKey) {
+                errorDiv.textContent = 'Please enter an API key';
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/verify', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ api_key: apiKey })
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    setApiKey(apiKey);
+                    errorDiv.textContent = '';
+                    document.getElementById('api-key-input').value = '';
+                    // Reload the page to load images
+                    window.location.reload();
+                } else {
+                    errorDiv.textContent = data.message || 'Invalid API key';
+                }
+            } catch (error) {
+                errorDiv.textContent = `Error: ${error.message}`;
+            }
+        }
+        
+        function deleteImage(imageName) {
+            const apiKey = getApiKey();
+            
+            if (!apiKey) {
+                alert('Please login first');
+                showLogin();
+                return;
+            }
+            
+            // Show custom confirmation dialog
+            showConfirmDialog(imageName);
+        }
+        
+        async function performDelete(imageName) {
+            const apiKey = getApiKey();
+            
+            if (!apiKey) {
+                alert('Please login first');
+                showLogin();
+                return;
+            }
+            
+            try {
+                const encodedImage = encodeURIComponent(imageName);
+                const response = await fetch(`/api/images/${encodedImage}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    loadImages();
+                } else {
+                    if (response.status === 401) {
+                        clearApiKey();
+                        alert('Session expired. Please login again.');
+                        showLogin();
+                    } else {
+                        alert(`Error: ${data.message || 'Failed to delete image'}`);
+                    }
+                }
+            } catch (error) {
+                alert(`Error deleting image: ${error.message}`);
+            }
+        }
+        
+        // Allow Enter key to submit login
+        document.addEventListener('DOMContentLoaded', function() {
+            const apiKeyInput = document.getElementById('api-key-input');
+            if (apiKeyInput) {
+                apiKeyInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        handleLogin();
+                    }
+                });
+            }
+        });
+        
+        function getCardAgeClass(createdDate) {
+            try {
+                const created = new Date(createdDate);
+                const now = new Date();
+                const diffMs = now - created;
+                const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                
+                if (diffDays > 30) {
+                    return 'old-month';
+                } else if (diffDays > 7) {
+                    return 'old-week';
+                }
+                return '';
+            } catch (e) {
+                return '';
+            }
+        }
+        
+        function createImageCard(image) {
+            const card = document.createElement('div');
+            card.className = 'image-card';
+            
+            // Apply age-based styling based on created date
+            const ageClass = getCardAgeClass(image.created);
+            if (ageClass) {
+                card.classList.add(ageClass);
+            }
+            
+            // Get short image name (just the name part, not full path)
+            const shortName = image.image.split('/').pop().split(':')[0];
+            
+            card.innerHTML = `
+                <div class="image-name-short">${escapeHtml(shortName)}</div>
+                <div class="card-icon">🐳</div>
+                <div class="image-name-full">${escapeHtml(image.image)}</div>
+                <div class="image-date">${formatDateShort(image.updated_at)}</div>
+                
+                <div class="hover-details">
+                    <div class="detail-row">
+                        <span class="detail-label">Image:</span>
+                        <span class="detail-value">${escapeHtml(image.image)}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Status:</span>
+                        <span class="detail-value">${escapeHtml(image.status)}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Digest:</span>
+                        <span class="detail-value">${escapeHtml(image.digest.substring(0, 20))}...</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Platform:</span>
+                        <span class="detail-value">${escapeHtml(image.platform)}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Provider:</span>
+                        <span class="detail-value">${escapeHtml(image.provider)}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Hostname:</span>
+                        <span class="detail-value">${escapeHtml(image.hostname)}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Hub Link:</span>
+                        <span class="detail-value">
+                            <a href="${escapeHtml(image.hub_link)}" target="_blank" rel="noopener noreferrer">View on Hub</a>
+                        </span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Created:</span>
+                        <span class="detail-value">${formatDate(image.created)}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Updated:</span>
+                        <span class="detail-value">${formatDate(image.updated_at)}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Diun Version:</span>
+                        <span class="detail-value">${escapeHtml(image.diun_version)}</span>
+                    </div>
+                </div>
+            `;
+            
+            // Add delete button if on admin page
+            if (isAdminPage()) {
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'delete-btn';
+                deleteBtn.textContent = '✕';
+                deleteBtn.type = 'button';
+                deleteBtn.title = 'Delete image';
+                const imageNameForDelete = image.image; // Capture the value
+                
+                // Use mousedown instead of click to avoid conflicts, or use a more isolated click handler
+                deleteBtn.onmousedown = function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                };
+                
+                deleteBtn.onclick = function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    deleteImage(imageNameForDelete);
+                    return false;
+                };
+                
+                // Prevent card clicks from interfering
+                card.style.cursor = 'default';
+                card.onclick = null;
+                
+                // Insert at the beginning of the card
+                card.insertBefore(deleteBtn, card.firstChild);
+                console.log('Delete button added for:', image.image);
+            } else {
+                // On index page, make card clickable to open Docker Hub link
+                card.style.cursor = 'pointer';
+                card.onclick = () => {
+                    window.open(image.hub_link, '_blank', 'noopener,noreferrer');
+                };
+            }
+            
+            return card;
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function formatDate(dateString) {
+            try {
+                const date = new Date(dateString);
+                return date.toLocaleString();
+            } catch (e) {
+                return dateString;
+            }
+        }
+        
+        function formatDateShort(dateString) {
+            try {
+                const date = new Date(dateString);
+                const now = new Date();
+                const diffMs = now - date;
+                const diffMins = Math.floor(diffMs / 60000);
+                const diffHours = Math.floor(diffMs / 3600000);
+                const diffDays = Math.floor(diffMs / 86400000);
+                
+                if (diffMins < 1) return 'Just now';
+                if (diffMins < 60) return `${diffMins}m ago`;
+                if (diffHours < 24) return `${diffHours}h ago`;
+                if (diffDays < 7) return `${diffDays}d ago`;
+                
+                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            } catch (e) {
+                return dateString;
+            }
+        }
+        
+        // Check authentication on admin page
+        if (isAdminPage()) {
+            const adminBtn = document.querySelector('.admin-btn');
+            if (adminBtn) {
+                adminBtn.style.display = 'none';
+            }
+            
+            const apiKey = getApiKey();
+            if (!apiKey) {
+                showLogin();
+            } else {
+                // Verify the stored key is still valid
+                fetch('/api/verify', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ api_key: apiKey })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status !== 'success') {
+                        clearApiKey();
+                        showLogin();
+                    } else {
+                        loadImages();
+                    }
+                })
+                .catch(() => {
+                    clearApiKey();
+                    showLogin();
+                });
+            }
+        } else {
+            // Load images on regular page
+            loadImages();
+        }
+        
+        // Auto-refresh every 30 seconds (only if not showing login)
+        setInterval(() => {
+            if (!document.getElementById('login-overlay') || 
+                document.getElementById('login-overlay').style.display === 'none') {
+                loadImages();
+            }
+        }, 30000);
+    </script>
+</body>
+</html>
+
