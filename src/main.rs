@@ -236,7 +236,6 @@ async fn delete_image_handler(
     
     match delete_image(&db, &image) {
         Ok(_) => {
-            println!("✓ Deleted image: {}", image);
             HttpResponse::Ok().json(serde_json::json!({
                 "status": "success",
                 "message": "Image deleted successfully"
@@ -329,8 +328,6 @@ async fn diun_webhook_with_auth(
             }
         });
     
-    println!("Authorization result: {:?}", auth_result);
-    
     // Validate authorization
     match auth_result {
         Some(token) if token == api_key.as_str() => {
@@ -357,7 +354,6 @@ async fn main() -> std::io::Result<()> {
     
     // Initialize database
     let conn = init_database().expect("Failed to initialize database");
-    println!("✓ Database initialized at ./data/diun.db");
     
     let db = web::Data::new(Mutex::new(conn));
     let api_key_data = web::Data::new(api_key);
