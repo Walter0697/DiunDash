@@ -407,7 +407,7 @@
                 
                 if (data.status === 'success' && data.images) {
                     if (data.images.length === 0) {
-                        container.innerHTML = '<div class="loading">No images found in database</div>';
+                        container.innerHTML = '<div class="loading" style="font-size: 1.5em; font-weight: 600; color: #4ade80; padding: 20px; line-height: 1.6;"><div style="font-size: 1.8em; margin-bottom: 10px;">🎉🎊✨</div>Congratulations! Everything is up to date! No images need updating!<div style="font-size: 1.8em; margin-top: 10px;">🎉🎊✨</div></div>';
                         return;
                     }
                     
